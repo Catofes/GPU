@@ -10,6 +10,8 @@
 #include "cuda_calculate.h"
 #include <chrono>
 #include <cuda.h>
+#include "thrust/system/cuda/detail/reduce.h"
+#include "reduce.h"
 
 #define GPUDEBUG
 
@@ -29,10 +31,10 @@ struct sub_f
     {
         double _x = x;
         if (x > max) {
-        //    _x = 2 * max - x;
+            //    _x = 2 * max - x;
         }
         if (x < min) {
-        //    _x = 2 * min - x;
+            //    _x = 2 * min - x;
         }
         double w = (width > 0) ? width : -width;
         return 1. / ((_x - mean) * (_x - mean) + 0.25 * w * w);
@@ -254,3 +256,123 @@ sub_cuda_gaus_calculate(int bins, double min, double max, double x, double mean,
 
     return result;
 }
+
+double cuda_normal_calculate(int bins, double min, double max, double x, double mean, double width, double f_min,
+                             double f_max)
+{
+    //Malloc memory in GPU.
+    thrust::device_vector<double> *d_t = new thrust::device_vector<double>(bins);
+    thrust::device_vector<double> *d_sigma = new thrust::device_vector<double>(bins);
+
+    //Prepare variable t from x_min to x_max.
+    thrust::sequence((*d_t).begin(), (*d_t).end(), min + 0.5 * (max - min) / bins, (max - min) / bins);
+
+    //Calculate sigma values from sigma kernel function sigma(t).
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), sub_sigma(0.5));
+
+    //Calculate gauss values form gauss kernel function gauss(x,t,sigma(t)).
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), (*d_sigma).begin(), sub_gauss(x));
+
+    //Calculate Breit-Wigner function f(t,mean,width) .
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_t).begin(), sub_f(f_max, f_min, mean, width));
+
+    //F(t) = f(t,mean,width)*gauss(x,t,sigma(t))
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), (*d_t).begin(), thrust::multiplies<double>());
+
+    //Sum(F(t))
+    return thrust::reduce((*d_t).begin(), (*d_t).end(), double(0), thrust::plus<double>());
+}
+
+template<typename InputIterator,
+        typename T,
+        typename BinaryFunction>
+T myreduce(InputIterator first,
+           InputIterator last,
+           T init,
+           BinaryFunction binary_op)
+{
+    using thrust::system::detail::generic::select_system;
+
+    typedef typename thrust::iterator_system<InputIterator>::type System;
+
+    System system;
+
+    //using thrust::system::detail::generic::reduce;
+    using thrust::system::cuda::detail::reduce_detail::my_tuned_reduce;
+    return my_tuned_reduce(thrust::detail::derived_cast(thrust::detail::strip_const(select_system(system))), first, last, init,
+                  binary_op);
+}
+
+std::vector<double>
+sub_cuda_normal_calculate_tuned(int bins, double min, double max, double x, double mean, double width, double f_min,
+     double f_max)
+{
+    std::vector<double> result;
+    result.push_back(0);
+#ifdef GPUDEBUG
+    std::chrono::system_clock::time_point start, finish;
+#endif
+
+    if (d_t == nullptr) {
+        d_t = new thrust::device_vector<double>(bins);
+    }
+    if (d_sigma == nullptr) {
+        d_sigma = new thrust::device_vector<double>(bins);
+    }
+//    if (h_result == nullptr) {
+//        h_result = new std::vector<double>(bins);
+//    }
+#ifdef GPUDEBUG
+    start = std::chrono::high_resolution_clock::now();
+#endif
+
+    thrust::sequence((*d_t).begin(), (*d_t).end(), min + 0.5 * (max - min) / bins, (max - min) / bins);
+
+#ifdef GPUDEBUG
+    finish = std::chrono::high_resolution_clock::now();
+    result.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count());
+    start = std::chrono::high_resolution_clock::now();
+#endif
+
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), sub_sigma(0.5));
+
+#ifdef GPUDEBUG
+    finish = std::chrono::high_resolution_clock::now();
+    result.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count());
+    start = std::chrono::high_resolution_clock::now();
+#endif
+
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), (*d_sigma).begin(), sub_gauss(x));
+
+#ifdef GPUDEBUG
+    finish = std::chrono::high_resolution_clock::now();
+    result.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count());
+    start = std::chrono::high_resolution_clock::now();
+#endif
+
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_t).begin(), sub_f(f_max, f_min, mean, width));
+
+#ifdef GPUDEBUG
+    finish = std::chrono::high_resolution_clock::now();
+    result.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count());
+    start = std::chrono::high_resolution_clock::now();
+#endif
+
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), (*d_t).begin(), thrust::multiplies<double>());
+
+#ifdef GPUDEBUG
+    finish = std::chrono::high_resolution_clock::now();
+    result.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count());
+    start = std::chrono::high_resolution_clock::now();
+#endif
+
+    result[0] = myreduce((*d_t).begin(), (*d_t).end(), double(0), thrust::plus<double>());
+
+#ifdef GPUDEBUG
+    finish = std::chrono::high_resolution_clock::now();
+    result.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count());
+    start = std::chrono::high_resolution_clock::now();
+#endif
+    return result;
+}
+

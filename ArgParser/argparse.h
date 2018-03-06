@@ -81,8 +81,8 @@ private:
         template <typename ValueType>
         ValueType* toPtr() const {
             return content->type_info() == typeid(ValueType)
-                       ? &static_cast<Holder<ValueType>*>(content)->held_
-                       : 0;
+                   ? &static_cast<Holder<ValueType>*>(content)->held_
+                   : 0;
         }
         template <typename ValueType>
         ValueType& castTo() {
@@ -139,9 +139,9 @@ private:
     }
 
     struct Argument {
-        Argument() : short_name(""), name(""), optional(true), fixed_nargs(0), fixed(true) {}
+        Argument() : short_name(""), name(""), optional(true), fixed_nargs(0), fixed(true), used(false) {}
         Argument(const String& _short_name, const String& _name, bool _optional, char nargs)
-                : short_name(_short_name), name(_name), optional(_optional) {
+                : short_name(_short_name), name(_name), optional(_optional), used(false) {
             if (nargs == '+' || nargs == '*') {
                 variable_nargs = nargs;
                 fixed = false;
@@ -153,6 +153,7 @@ private:
         String short_name;
         String name;
         bool optional;
+        bool used;
         union {
             size_t fixed_nargs;
             char variable_nargs;
@@ -246,12 +247,12 @@ public:
         if (name.empty()) argumentError("argument names must be non-empty");
         if ((name.size() == 2 && name[0] != '-') || name.size() == 3)
             argumentError(String("invalid argument '")
-                              .append(name)
-                              .append("'. Short names must begin with '-'"));
+                                  .append(name)
+                                  .append("'. Short names must begin with '-'"));
         if (name.size() > 3 && (name[0] != '-' || name[1] != '-'))
             argumentError(String("invalid argument '")
-                              .append(name)
-                              .append("'. Multi-character names must begin with '--'"));
+                                  .append(name)
+                                  .append("'. Multi-character names must begin with '--'"));
         return name;
     }
 
@@ -296,16 +297,18 @@ public:
                 if ((active.fixed && active.fixed_nargs != consumed) ||
                     (!active.fixed && active.variable_nargs == '+' && consumed < 1))
                     argumentError(String("encountered argument ")
-                                      .append(el)
-                                      .append(" when expecting more inputs to ")
-                                      .append(active_name),
+                                          .append(el)
+                                          .append(" when expecting more inputs to ")
+                                          .append(active_name),
                                   true);
                 active = arguments_[index_[el]];
+                arguments_[index_[el]].used = true;
+
                 // check if we've satisfied the required arguments
                 if (active.optional && nrequired > 0)
                     argumentError(String("encountered optional argument ")
-                                      .append(el)
-                                      .append(" when expecting more required arguments"),
+                                          .append(el)
+                                          .append(" when expecting more required arguments"),
                                   true);
                 // are there enough arguments for the new argument to consume?
                 if ((active.fixed && active.fixed_nargs > (argv.end() - in - nfinal - 1)) ||
@@ -318,14 +321,14 @@ public:
         }
 
         for (StringVector::const_iterator in =
-                 std::max(argv.begin() + ignore_first_, argv.end() - nfinal);
+                std::max(argv.begin() + ignore_first_, argv.end() - nfinal);
              in != argv.end(); ++in) {
             String el = *in;
             // check if we accidentally find an argument specifier
             if (index_.count(el))
                 argumentError(String("encountered argument specifier ")
-                                  .append(el)
-                                  .append(" while parsing final required inputs"),
+                                      .append(el)
+                                      .append(" while parsing final required inputs"),
                               true);
             if (final.fixed && final.fixed_nargs == 1) {
                 variables_[index_[final_name_]].castTo<String>() = el;
@@ -416,7 +419,10 @@ public:
         arguments_.clear();
         variables_.clear();
     }
-    bool exists(const String& name) const { return index_.count(delimit(name)) > 0; }
+    bool exists(const String& name) const {
+        auto it = index_.find(delimit(name));
+        return (it != index_.end()) && (arguments_[it->second].used);
+    }
     size_t count(const String& name) {
         // check if the name is an argument
         if (index_.count(delimit(name)) == 0) return 0;

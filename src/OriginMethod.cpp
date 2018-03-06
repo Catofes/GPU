@@ -48,7 +48,7 @@ int main(int argc, char **argv)
         debug = nullptr;
     }
     int bins = atoi(parser.retrieve<std::string>("bin").c_str());
-//    TApplication *myapp = new TApplication("App", &argc, argv);
+    TApplication *myapp = new TApplication("App", &argc, argv);
     RooRealVar x("x", "x", 15, 0, 30);
     RooRealVar width("width", "width", 10, 8, 12);
     RooRealVar mean("mean", "mean", 10, 8, 12);
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
     RooMyPdf my_pdf_4("my_pdf_4", "MyPDF", x, mean, width, bins, 3, debug);
     my_pdf_4.cuda_gaus_prepare();
     RooVoigtian voigtian_pdf("voigtian_pdf", "VoigtianPdf", x, mean, width, sigma);
-    //RooPlot *xfram = x.frame();
+    RooPlot *xfram = x.frame();
     std::vector<double> v1, v2, v3, v4, v5;
     for (int i = 0; i < 10000; i++) {
         x.setVal(x.getMin() + (x.getMax() - x.getMin()) / 12000. * (1000 + i));
@@ -69,8 +69,6 @@ int main(int argc, char **argv)
         v3.push_back(my_pdf_2.getValV(set));
         v4.push_back(my_pdf_3.getValV(set));
         v5.push_back(my_pdf_4.getValV(set));
-        //cout << "v: " << voigtian_pdf.getValV(set) << " " << my_pdf_1.getValV(set) << " " << my_pdf_2.getValV(set) << " "
-        //     << my_pdf_3.getValV(set) << " " << my_pdf_4.getValV(set) << endl;
     }
     cout << "gaus diff: " << calculate_sqare(v2, v1) << endl;
     cout << "normal diff: " << calculate_sqare(v3, v1) << endl;
@@ -80,7 +78,7 @@ int main(int argc, char **argv)
         delete (debug);
     }
 
-//    voigtian_pdf.plotOn(xfram, LineColor(1));
+    voigtian_pdf.plotOn(xfram, LineColor(1));
 //    my_pdf_1.plotOn(xfram, LineColor(2));
 //    my_pdf_2.plotOn(xfram, LineColor(3));
 //    my_pdf_3.plotOn(xfram, LineColor(4));
@@ -100,7 +98,7 @@ int main(int argc, char **argv)
 //    my_pdf_3.fitTo(*data);
 //    my_pdf_3.plotOn(xfram);
 
-//    xfram->Draw();
+    xfram->Draw();
 
 //    TCanvas *c2 = new TCanvas("gaus_evaluate", "gaus_evaluate");
 //    c2->cd();
@@ -125,5 +123,5 @@ int main(int argc, char **argv)
 //    debug->tree->Draw("total", "type==3");
 //    c5->SetLogy(true);
 //    c5->Update();
-//    myapp->Run();
+    myapp->Run();
 }

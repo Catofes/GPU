@@ -63,17 +63,17 @@ RooMyPdf::RooMyPdf(const RooMyPdf &other, const char *name) :
     }
 }
 
-
+// F(t) = \frac{1}{(t-mean)^2+0.25\times width^2}
 Double_t RooMyPdf::sub_f(Double_t t) const
 {
     Double_t upper = x.max();
     Double_t lower = x.min();
-    if (t > upper) {
-        //t = 2 * upper - t;
-    }
-    if (t < lower) {
-        //t = 2 * lower - t;
-    }
+//    if (t > upper) {
+//        //t = 2 * upper - t;
+//    }
+//    if (t < lower) {
+//        //t = 2 * lower - t;
+//    }
 
     Double_t w = (width > 0) ? width : -width;
     Double_t arg = t - mean;
@@ -99,7 +99,7 @@ Double_t RooMyPdf::cuda_normal_evaluate() const
 {
     Double_t upper = x.max() + 3 * sub_sigma(x.max());
     Double_t lower = x.min() - 3 * sub_sigma(x.min());
-    auto result = sub_cuda_normal_calculate(bins, lower, upper, x, mean, width, x.min(), x.max());
+    auto result = sub_cuda_normal_calculate_tuned(bins, lower, upper, x, mean, width, x.min(), x.max());
     result[0] = result[0] * (upper - lower) / bins;
     if (debug == nullptr) {
         return result[0];
@@ -190,8 +190,8 @@ Double_t RooMyPdf::evaluate() const
     auto finish = std::chrono::high_resolution_clock::now();
     if (debug != nullptr) {
         debug->AddValues("total", std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count());
+        debug->Save();
     }
-    debug->Save();
     return result;
 }
 
