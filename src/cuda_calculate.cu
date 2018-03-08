@@ -283,29 +283,38 @@ double cuda_normal_calculate(int bins, double min, double max, double x, double 
     return thrust::reduce((*d_t).begin(), (*d_t).end(), double(0), thrust::plus<double>());
 }
 
-template<typename InputIterator,
-        typename T,
-        typename BinaryFunction>
-T myreduce(InputIterator first,
-           InputIterator last,
-           T init,
-           BinaryFunction binary_op)
+thrust::detail::temporary_array<double,
+        thrust::iterator_system<thrust::detail::vector_base<double,
+                thrust::device_malloc_allocator<double>>::iterator>::type> *tmp = nullptr;
+
+#define device_vector_iterator thrust::detail::vector_base<double, thrust::device_malloc_allocator<double>>::iterator
+
+template<typename BinaryFunction>
+double myreduce(device_vector_iterator first,
+                device_vector_iterator last,
+                double init,
+                BinaryFunction binary_op)
 {
     using thrust::system::detail::generic::select_system;
 
-    typedef typename thrust::iterator_system<InputIterator>::type System;
+    typedef typename thrust::iterator_system<device_vector_iterator>::type System;
 
     System system;
+    auto input_system = thrust::detail::derived_cast(thrust::detail::strip_const(select_system(system)));
+    if (tmp == nullptr) {
+        tmp = new thrust::detail::temporary_array<double, System>(input_system, 100000);
+    }
 
     //using thrust::system::detail::generic::reduce;
     using thrust::system::cuda::detail::reduce_detail::my_tuned_reduce;
-    return my_tuned_reduce(thrust::detail::derived_cast(thrust::detail::strip_const(select_system(system))), first, last, init,
-                  binary_op);
+    auto result = my_tuned_reduce(input_system, first, last, init,
+                           binary_op, 100000, *tmp);
+    return result;
 }
 
 std::vector<double>
 sub_cuda_normal_calculate_tuned(int bins, double min, double max, double x, double mean, double width, double f_min,
-     double f_max)
+                                double f_max)
 {
     std::vector<double> result;
     result.push_back(0);

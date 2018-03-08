@@ -59,6 +59,8 @@ protected:
 
     Double_t cuda_normal_evaluate() const;
 
+    Double_t cuda_normal_evaluate_tuned() const;
+
     Double_t cuda_gaus_evaluate() const;
 
     Double_t evaluate() const;

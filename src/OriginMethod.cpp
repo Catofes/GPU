@@ -57,10 +57,11 @@ int main(int argc, char **argv)
     RooMyPdf my_pdf_2("my_pdf_2", "MyPDF", x, mean, width, bins, 1, debug);
     RooMyPdf my_pdf_3("my_pdf_3", "MyPDF", x, mean, width, bins, 2, debug);
     RooMyPdf my_pdf_4("my_pdf_4", "MyPDF", x, mean, width, bins, 3, debug);
-    my_pdf_4.cuda_gaus_prepare();
+    RooMyPdf my_pdf_5("my_pdf_4", "MyPDF", x, mean, width, bins, 4, debug);
+    my_pdf_3.cuda_gaus_prepare();
     RooVoigtian voigtian_pdf("voigtian_pdf", "VoigtianPdf", x, mean, width, sigma);
 //    RooPlot *xfram = x.frame();
-    std::vector<double> v1, v2, v3, v4, v5;
+    std::vector<double> v1, v2, v3, v4, v5, v6;
     for (int i = 0; i < 10000; i++) {
         x.setVal(x.getMin() + (x.getMax() - x.getMin()) / 12000. * (1000 + i));
         RooArgSet *set = new RooArgSet(x);
@@ -69,11 +70,13 @@ int main(int argc, char **argv)
         v3.push_back(my_pdf_2.getValV(set));
         v4.push_back(my_pdf_3.getValV(set));
         v5.push_back(my_pdf_4.getValV(set));
+        v6.push_back(my_pdf_5.getValV(set));
     }
     cout << "gaus diff: " << calculate_sqare(v2, v1) << endl;
     cout << "normal diff: " << calculate_sqare(v3, v1) << endl;
     cout << "gaus cuda diff: " << calculate_sqare(v4, v1) << endl;
     cout << "normal cuda diff: " << calculate_sqare(v5, v1) << endl;
+    cout << "normal cuda tuned diff: " << calculate_sqare(v6, v1) << endl;
     if (debug != nullptr) {
         delete (debug);
     }

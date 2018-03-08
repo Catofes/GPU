@@ -37,7 +37,9 @@ namespace thrust
                                                InputIterator first,
                                                InputIterator last,
                                                OutputType init,
-                                               BinaryFunction binary_op)
+                                               BinaryFunction binary_op,
+                                               size_t size,
+                                               thrust::detail::temporary_array<OutputType, DerivedPolicy> &partial_sums)
                     {
                         typedef typename thrust::iterator_difference<InputIterator>::type size_type;
 
@@ -62,17 +64,24 @@ namespace thrust
 
                         aligned_decomposition<size_type> decomp(n, num_groups, tile_size);
 
-                        thrust::detail::temporary_array<OutputType, DerivedPolicy> partial_sums(exec, decomp.size());
+                        //thrust::detail::temporary_array<OutputType, DerivedPolicy> partial_sums(exec, decomp.size());
+                        if (size >= decomp.size()) {
+                            size = decomp.size();
+                        } else {
+                            printf("Error! tmp size not enough.");
+                            exit(-1);
+                        }
 
                         // reduce into partial sums
                         bulk_::async(bulk_::par(s, g, decomp.size()), reduce_detail::reduce_partitions(),
                                      bulk_::root.this_exec, first, decomp, partial_sums.begin(), init,
                                      binary_op).wait();
 
-                        if (partial_sums.size() > 1) {
+                        if (size > 1) {
                             // reduce the partial sums
                             bulk_::async(bulk_::par(s, g, 1), reduce_detail::reduce_partitions(), bulk_::root.this_exec,
-                                         partial_sums.begin(), partial_sums.end(), partial_sums.begin(), binary_op);
+                                         partial_sums.begin(), partial_sums.begin() + size, partial_sums.begin(),
+                                         binary_op);
                         } // end while
 
                         return get_value(exec, &partial_sums[0]);

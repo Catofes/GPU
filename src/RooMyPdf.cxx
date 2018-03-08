@@ -31,7 +31,7 @@ RooMyPdf::RooMyPdf(const char *name, const char *title,
 {
     string a = "time_";
     a += string(name);
-    if (_method == 0 || _method == 3) {
+    if (_method == 0 || _method == 2) {
         temp = new fastgl::QuadPair[bins];
         for (int i = 0; i < bins; i++) {
             temp[i] = fastgl::GLPair(bins, i + 1);
@@ -51,7 +51,7 @@ RooMyPdf::RooMyPdf(const RooMyPdf &other, const char *name) :
         gaus_w(other.bins),
         debug(other.debug)
 {
-    if (other.method == 0 || other.method == 3) {
+    if (other.method == 0 || other.method == 2) {
         temp = new fastgl::QuadPair[bins];
         for (int i = 0; i < bins; i++) {
             temp[i] = other.temp[i];
@@ -96,6 +96,22 @@ Double_t RooMyPdf::sub_evaluate(Double_t t) const
 }
 
 Double_t RooMyPdf::cuda_normal_evaluate() const
+{
+    Double_t upper = x.max() + 3 * sub_sigma(x.max());
+    Double_t lower = x.min() - 3 * sub_sigma(x.min());
+    auto result = sub_cuda_normal_calculate(bins, lower, upper, x, mean, width, x.min(), x.max());
+    result[0] = result[0] * (upper - lower) / bins;
+    if (debug == nullptr) {
+        return result[0];
+    }
+    for (int i = 1; i < result.size(); i++) {
+        auto key = "s" + to_string(i);
+        debug->AddValues(key, result[i]);
+    }
+    return result[0];
+}
+
+Double_t RooMyPdf::cuda_normal_evaluate_tuned() const
 {
     Double_t upper = x.max() + 3 * sub_sigma(x.max());
     Double_t lower = x.min() - 3 * sub_sigma(x.min());
@@ -185,6 +201,9 @@ Double_t RooMyPdf::evaluate() const
             break;
         case 3:
             result = cuda_normal_evaluate();
+            break;
+        case 4:
+            result = cuda_normal_evaluate_tuned();
             break;
     }
     auto finish = std::chrono::high_resolution_clock::now();
