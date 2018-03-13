@@ -82,7 +82,7 @@ Double_t RooMyPdf::sub_f(Double_t t) const
 
 Double_t RooMyPdf::sub_sigma(Double_t t) const
 {
-    return 0.5;
+    return sqrt(15)*3/sqrt(abs(t));
 }
 
 // F(t) = f(t) * \frac{1}{\sigma (t)} \exp{-\frac{(t-x)^2}{2*\sigma^2(t)}}

@@ -9,6 +9,7 @@
 #include "RooDataSet.h"
 #include "RooMinimizer.h"
 #include "argparse.h"
+#include "TLegend.h"
 
 using namespace RooFit;
 using namespace std;
@@ -48,41 +49,41 @@ int main(int argc, char **argv)
         debug = nullptr;
     }
     int bins = atoi(parser.retrieve<std::string>("bin").c_str());
-//    TApplication *myapp = new TApplication("App", &argc, argv);
-    RooRealVar x("x", "x", 15, 0, 30);
+    TApplication *myapp = new TApplication("App", &argc, argv);
+    RooRealVar x("x", "x", 20, 10, 30);
     RooRealVar width("width", "width", 10, 8, 12);
-    RooRealVar mean("mean", "mean", 10, 8, 12);
-    RooRealVar sigma("sigma", "sigma", 0.5, 0.5, 0.5);
+    RooRealVar mean("mean", "mean", 15, 10, 15);
+    RooRealVar sigma("sigma", "sigma", 3, 3, 0.5);
     RooMyPdf my_pdf_1("my_pdf_1", "MyPDF", x, mean, width, bins, 0, debug);
     RooMyPdf my_pdf_2("my_pdf_2", "MyPDF", x, mean, width, bins, 1, debug);
     RooMyPdf my_pdf_3("my_pdf_3", "MyPDF", x, mean, width, bins, 2, debug);
     RooMyPdf my_pdf_4("my_pdf_4", "MyPDF", x, mean, width, bins, 3, debug);
-    RooMyPdf my_pdf_5("my_pdf_4", "MyPDF", x, mean, width, bins, 4, debug);
+    //RooMyPdf my_pdf_5("my_pdf_4", "MyPDF", x, mean, width, bins, 4, debug);
     my_pdf_3.cuda_gaus_prepare();
     RooVoigtian voigtian_pdf("voigtian_pdf", "VoigtianPdf", x, mean, width, sigma);
-//    RooPlot *xfram = x.frame();
+    RooPlot *xfram = x.frame();
     std::vector<double> v1, v2, v3, v4, v5, v6;
-    for (int i = 0; i < 10000; i++) {
-        x.setVal(x.getMin() + (x.getMax() - x.getMin()) / 12000. * (1000 + i));
-        RooArgSet *set = new RooArgSet(x);
-        v1.push_back(voigtian_pdf.getValV(set));
-        v2.push_back(my_pdf_1.getValV(set));
-        v3.push_back(my_pdf_2.getValV(set));
-        v4.push_back(my_pdf_3.getValV(set));
-        v5.push_back(my_pdf_4.getValV(set));
-        v6.push_back(my_pdf_5.getValV(set));
-    }
-    cout << "gaus diff: " << calculate_sqare(v2, v1) << endl;
-    cout << "normal diff: " << calculate_sqare(v3, v1) << endl;
-    cout << "gaus cuda diff: " << calculate_sqare(v4, v1) << endl;
-    cout << "normal cuda diff: " << calculate_sqare(v5, v1) << endl;
-    cout << "normal cuda tuned diff: " << calculate_sqare(v6, v1) << endl;
+//    for (int i = 0; i < 10000; i++) {
+//        x.setVal(x.getMin() + (x.getMax() - x.getMin()) / 12000. * (1000 + i));
+//        RooArgSet *set = new RooArgSet(x);
+//        v1.push_back(voigtian_pdf.getValV(set));
+//        v2.push_back(my_pdf_1.getValV(set));
+//        v3.push_back(my_pdf_2.getValV(set));
+//        v4.push_back(my_pdf_3.getValV(set));
+//        v5.push_back(my_pdf_4.getValV(set));
+//        //v6.push_back(my_pdf_5.getValV(set));
+//    }
+//    cout << "gaus diff: " << calculate_sqare(v2, v1) << endl;
+//    cout << "normal diff: " << calculate_sqare(v3, v1) << endl;
+//    cout << "gaus cuda diff: " << calculate_sqare(v4, v1) << endl;
+//    cout << "normal cuda diff: " << calculate_sqare(v5, v1) << endl;
+    //cout << "normal cuda tuned diff: " << calculate_sqare(v6, v1) << endl;
     if (debug != nullptr) {
         delete (debug);
     }
 
-//    voigtian_pdf.plotOn(xfram, LineColor(1));
-//    my_pdf_1.plotOn(xfram, LineColor(2));
+    voigtian_pdf.plotOn(xfram, LineColor(1), RooFit::Name("voigtian"));
+    my_pdf_1.plotOn(xfram, LineColor(2), RooFit::Name("mypdf"));
 //    my_pdf_2.plotOn(xfram, LineColor(3));
 //    my_pdf_3.plotOn(xfram, LineColor(4));
 //    my_pdf_4.plotOn(xfram, LineColor(5));
@@ -101,34 +102,17 @@ int main(int argc, char **argv)
 //    my_pdf_3.fitTo(*data);
 //    my_pdf_3.plotOn(xfram);
 
-//    TCanvas *c = new TCanvas("voigtian", "voigtian");
-//    gPad->SetLeftMargin(0.15);
-//    xfram->GetYaxis()->SetTitleOffset(1.4);
-//    xfram->SetTitle("");
-//    xfram->Draw();
-
-//    TCanvas *c2 = new TCanvas("gaus_evaluate", "gaus_evaluate");
-//    c2->cd();
-//    debug->tree->Draw("total", "type==0");
-//    c2->SetLogy(true);
-//    c2->Update();
-//
-//    TCanvas *c3 = new TCanvas("normal_evaluate", "normal_evaluate");
-//    c3->cd();
-//    debug->tree->Draw("total", "type==1");
-//    c3->SetLogy(true);
-//    c3->Update();
-//
-//    TCanvas *c4 = new TCanvas("cuda_normal_evaluate", "cuda_normal_evaluate");
-//    c4->cd();
-//    debug->tree->Draw("total", "type==2");
-//    c4->SetLogy(true);
-//    c4->Update();
-//
-//    TCanvas *c5 = new TCanvas("cuda_gaus_evaluate", "cuda_gaus_evaluate");
-//    c5->cd();
-//    debug->tree->Draw("total", "type==3");
-//    c5->SetLogy(true);
-//    c5->Update();
-//    myapp->Run();
+    TCanvas *c = new TCanvas("voigtian", "voigtian");
+    gPad->SetLeftMargin(0.15);
+    auto leg = new TLegend(0.65, 0.75, 0.88, 0.88);
+    xfram->GetYaxis()->SetTitleOffset(1.4);
+    xfram->GetYaxis()->SetTitle("Projection of PDF");
+    xfram->GetYaxis()->CenterTitle();
+    xfram->GetXaxis()->CenterTitle();
+    xfram->SetTitle("");
+    xfram->Draw();
+    leg->AddEntry(xfram->findObject("voigtian"), "Voigt PDF", "l");
+    leg->AddEntry(xfram->findObject("mypdf"), "Actually PDF", "l");
+    leg->Draw();
+    myapp->Run();
 }
