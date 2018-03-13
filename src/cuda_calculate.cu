@@ -51,7 +51,7 @@ struct sub_sigma
     __device__
     double operator()(const double &x) const
     {
-        return sigma/sqrt(abs(x));
+        return sigma;
     }
 };
 
@@ -94,9 +94,6 @@ sub_cuda_normal_calculate(int bins, double min, double max, double x, double mea
     if (d_sigma == nullptr) {
         d_sigma = new thrust::device_vector<double>(bins);
     }
-//    if (h_result == nullptr) {
-//        h_result = new std::vector<double>(bins);
-//    }
 #ifdef GPUDEBUG
     start = std::chrono::high_resolution_clock::now();
 #endif
@@ -109,7 +106,7 @@ sub_cuda_normal_calculate(int bins, double min, double max, double x, double mea
     start = std::chrono::high_resolution_clock::now();
 #endif
 
-    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), sub_sigma(3*sqrt(15)));
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), sub_sigma(3));
 
 #ifdef GPUDEBUG
     finish = std::chrono::high_resolution_clock::now();
@@ -148,25 +145,6 @@ sub_cuda_normal_calculate(int bins, double min, double max, double x, double mea
     result.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count());
     start = std::chrono::high_resolution_clock::now();
 #endif
-//
-//    thrust::copy((*d_t).begin(), (*d_t).end(), (*h_result).begin());
-//
-//#ifdef GPUDEBUG
-//    finish = std::chrono::high_resolution_clock::now();
-//    std::cout << "s7: " << std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count() << std::endl;
-//    start = std::chrono::high_resolution_clock::now();
-//#endif
-//
-//    double r;
-//    for (int i = 0; i < bins; i++) {
-//        r += (*h_result)[i];
-//    }
-//
-//#ifdef GPUDEBUG
-//    finish = std::chrono::high_resolution_clock::now();
-//    std::cout << "s8: " << std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count() << std::endl;
-//    start = std::chrono::high_resolution_clock::now();
-//#endif
 
     return result;
 }
@@ -213,7 +191,7 @@ sub_cuda_gaus_calculate(int bins, double min, double max, double x, double mean,
     start = std::chrono::high_resolution_clock::now();
 #endif
 
-    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), sub_sigma(3*sqrt(15)));
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), sub_sigma(3));
 
 #ifdef GPUDEBUG
     finish = std::chrono::high_resolution_clock::now();
