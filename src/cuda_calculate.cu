@@ -51,7 +51,7 @@ struct sub_sigma
     __device__
     double operator()(const double &x) const
     {
-        return sqrt(15.)*3/sqrt(x);
+        return sqrt(15.)*3./sqrt(abs(x));
     }
 };
 
@@ -246,7 +246,7 @@ double cuda_normal_calculate(int bins, double min, double max, double x, double 
     thrust::sequence((*d_t).begin(), (*d_t).end(), min + 0.5 * (max - min) / bins, (max - min) / bins);
 
     //Calculate sigma values from sigma kernel function sigma(t).
-    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), sub_sigma(3*sqrt(15)));
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), sub_sigma(3));
 
     //Calculate gauss values form gauss kernel function gauss(x,t,sigma(t)).
     thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), (*d_sigma).begin(), sub_gauss(x));
@@ -306,9 +306,6 @@ sub_cuda_normal_calculate_tuned(int bins, double min, double max, double x, doub
     if (d_sigma == nullptr) {
         d_sigma = new thrust::device_vector<double>(bins);
     }
-//    if (h_result == nullptr) {
-//        h_result = new std::vector<double>(bins);
-//    }
 #ifdef GPUDEBUG
     start = std::chrono::high_resolution_clock::now();
 #endif
@@ -321,7 +318,7 @@ sub_cuda_normal_calculate_tuned(int bins, double min, double max, double x, doub
     start = std::chrono::high_resolution_clock::now();
 #endif
 
-    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), sub_sigma(0.5));
+    thrust::transform((*d_t).begin(), (*d_t).end(), (*d_sigma).begin(), sub_sigma(3));
 
 #ifdef GPUDEBUG
     finish = std::chrono::high_resolution_clock::now();

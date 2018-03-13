@@ -52,10 +52,11 @@ int main(int argc, char **argv)
     RooRealVar width("width", "width", 10, 8, 12);
     RooRealVar mean("mean", "mean", 15, 10, 15);
     RooRealVar sigma("sigma", "sigma", 3, 3, 0.5);
-    RooMyPdf my_pdf_1("my_pdf_1", "MyPDF", x, mean, width, bins, 0, debug);
-    RooMyPdf my_pdf_2("my_pdf_2", "MyPDF", x, mean, width, bins, 1, debug);
+//    RooMyPdf my_pdf_1("my_pdf_1", "MyPDF", x, mean, width, bins, 0, debug);
+//    RooMyPdf my_pdf_2("my_pdf_2", "MyPDF", x, mean, width, bins, 1, debug);
     RooMyPdf my_pdf_3("my_pdf_3", "MyPDF", x, mean, width, bins, 2, debug);
     RooMyPdf my_pdf_4("my_pdf_4", "MyPDF", x, mean, width, bins, 3, debug);
+    RooMyPdf my_pdf_5("my_pdf_5", "MyPDF", x, mean, width, bins, 4, debug);
     my_pdf_3.cuda_gaus_prepare();
     RooVoigtian voigtian_pdf("voigtian_pdf", "VoigtianPdf", x, mean, width, sigma);
     std::vector<double> v1, v2, v3, v4, v5;
@@ -63,10 +64,11 @@ int main(int argc, char **argv)
         x.setVal(x.getMin() + (x.getMax() - x.getMin()) / 12000. * (1000 + i));
         RooArgSet *set = new RooArgSet(x);
         v1.push_back(voigtian_pdf.getValV(set));
-        v2.push_back(my_pdf_1.getValV(set));
-        v3.push_back(my_pdf_2.getValV(set));
+//        v2.push_back(my_pdf_1.getValV(set));
+//        v3.push_back(my_pdf_2.getValV(set));
         v4.push_back(my_pdf_3.getValV(set));
         v5.push_back(my_pdf_4.getValV(set));
+        my_pdf_5.getValV(set);
     }
     cout << "gaus diff: " << calculate_sqare(v2, v1) << endl;
     cout << "normal diff: " << calculate_sqare(v3, v1) << endl;
