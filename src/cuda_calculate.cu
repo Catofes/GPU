@@ -51,7 +51,7 @@ struct sub_sigma
     __device__
     double operator()(const double &x) const
     {
-        return sqrt(15.)*3./sqrt(abs(x));
+        return sqrt(abs(x))*0.56975;
     }
 };
 
