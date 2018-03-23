@@ -2,12 +2,12 @@ import ROOT
 
 data = '''
 1000	2000	5000	10000	20000	50000	100000	200000	500000	1000000	2000000	5000000	10000000	20000000	50000000	100000000	200000000
-237347.5352	477346.2078	1180622.82	2359769.724	4743672.789	11642909.31	23236435.41	46363395.35	116394465.5	233281090.6							
-164701.3639	331171.279	820183.7044	1646363.02	3286950.909	8211757.316	16387862.79	32788333.87	81793799.9	163761205.2							
-677170.8065	670512.9781	681801.5873	671672.3518	689400.1411	681922.5521	677230.1758	698317.747	708469.6118	1093248.443	1855289.817	4197851.292	8654051.257	16018435.87	40395855.12	90392631.05	162421769.8
-676947.0323	670534.8703	679443.6121	672247.566	687328.6633	678100.8933	677834.0261	694619.8749	694064.549	908787.2109	1479214.547	3238553.496	6724302.937	12122568.49	30600717.97	70503813.12	122765455.8
-196684.2483	196999.2088	207095.3594	194580.6936	205486.3777	203428.6599	205320.7774	291440.0003	411663.5315	704100.7427	1273253.392	3032314.615	6520269.413	11913798.28	30392659.03	70299273.66	122552100.6'''
-
+224188.7004	445534.3216	1116443.876	2230918.153	4476439.891	11156217.26	22043587.97	44258584.77	110262770.1	221767305.5							
+154501.4818	315668.209	768402.503	1535415.037	3051301.315	7645049.233	15451834.91	30589531.28	76414678.06	152769897.6							
+668315.0636	684573.7449	672426.6429	673484.3031	679746.8141	681683.8548	686961.1488	700179.2421	705874.9658	1090811.015	1856043.604	4197993.894	8640079.153	16006945.3	40389069.56	89928003.75	162458074.2
+668709.1032	684309.1852	671952.4095	674039.095	679906.453	678596.7572	686233.9364	695729.571	693618.9174	906053.4094	1480131.933	3240281.947	6709316.591	12113703.42	30591342.2	70037103.46	122803131.6
+195285.6236	202370.9221	197224.1263	196829.6178	205277.2303	202259.6146	210137.4721	290780.7822	411213.7445	702185.9597	1273181.293	3030897.153	6503725.878	11904652.07	30383175.64	69836575.46	122588802.1
+'''
 lines = data.strip().split("\n")
 lines = [line.strip() for line in lines]
 lines = [line.split() for line in lines]
@@ -83,8 +83,8 @@ tLegend = ROOT.TLegend(0.6, 0.15, 0.85, 0.35)
 # tLegend.SetTextFont(72)
 # tLegend.SetTextSize(0.05)
 tLegend.SetFillColor(0)
-tLegend.AddEntry(graphGauss, "Gauss", "PL")
-tLegend.AddEntry(graphRiemann, "Riemann", "PL")
+tLegend.AddEntry(graphGauss, "CPU Gauss", "PL")
+tLegend.AddEntry(graphRiemann, "CPU Riemann", "PL")
 tLegend.AddEntry(graphGPUGauss, "GPU Gauss", "PL")
 tLegend.AddEntry(graphGPURiemann, "GPU Riemann", "PL")
 tLegend.Draw()
@@ -104,13 +104,24 @@ tTmpHist2.GetXaxis().CenterTitle()
 tTmpHist2.GetYaxis().SetTitle("Time / ns")
 tTmpHist2.GetYaxis().CenterTitle()
 
+graphRiemann2 = ROOT.TGraph(len(Riemann))
+for i in range(0, len(Riemann)):
+    graphRiemann2.SetPoint(i, X[i], Riemann[i])
+graphRiemann2.SetTitle("Riemann")
+graphRiemann2.SetLineColor(46)
+graphRiemann2.SetLineWidth(3)
+graphRiemann2.SetMarkerStyle(21)
+graphRiemann2.SetMarkerColor(46)
+graphRiemann2.SetMarkerSize(1)
+graphRiemann2.Draw("PL")
+
 graphGPURiemann2 = ROOT.TGraph(len(GPURiemann))
 for i in range(0, len(GPURiemann)):
     graphGPURiemann2.SetPoint(i, X[i], GPURiemann[i])
 graphGPURiemann2.SetTitle("GPU Riemann")
 graphGPURiemann2.SetLineColor(8)
 graphGPURiemann2.SetLineWidth(3)
-graphGPURiemann2.SetMarkerStyle(20)
+graphGPURiemann2.SetMarkerStyle(25)
 graphGPURiemann2.SetMarkerColor(8)
 graphGPURiemann2.SetMarkerSize(1)
 graphGPURiemann2.Draw("PL")
@@ -121,14 +132,15 @@ for i in range(0, len(GPURiemannTuned)):
 graphGPURiemannTuned.SetTitle("GPU Riemann Tuned")
 graphGPURiemannTuned.SetLineColor(49)
 graphGPURiemannTuned.SetLineWidth(3)
-graphGPURiemannTuned.SetMarkerStyle(21)
+graphGPURiemannTuned.SetMarkerStyle(20)
 graphGPURiemannTuned.SetMarkerColor(49)
 graphGPURiemannTuned.SetMarkerSize(1)
 graphGPURiemannTuned.Draw("PL")
 
 
-tLegend2 = ROOT.TLegend(0.2, 0.6, 0.5, 0.8)
+tLegend2 = ROOT.TLegend(0.6, 0.15, 0.85, 0.35)
 tLegend2.SetFillColor(0)
+tLegend2.AddEntry(graphRiemann2, "CPU Riemann", "PL")
 tLegend2.AddEntry(graphGPURiemann2, "GPU Riemann", "PL")
 tLegend2.AddEntry(graphGPURiemannTuned, "GPU Riemann Tuned", "PL")
 tLegend2.Draw()
