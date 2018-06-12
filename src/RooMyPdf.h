@@ -12,10 +12,26 @@
 #include "RooCategoryProxy.h"
 #include "RooAbsReal.h"
 #include "RooAbsCategory.h"
-#include "TH1F.h"
-#include "fastgl.h"
-#include <vector>
-#include "DebugTimeInfo.h"
+
+/*
+ * This is a example code for the GPU convolution.
+ *
+ * We suppose a signal peak follow a PDF:
+ *      f_1(t) = \frac{1}{(t-mean_1)^2+0.25 \times width_1^2}
+ * And a nother peak:
+ *      f_2(t) = \frac{1}{(t-mean_2)^2+0.25 \times width_2^2}
+ * So all the signal spectrum follow this PDF: (Unnormalized)
+ *      f(t) = \frac{1}{(t-mean_1)^2+0.25 \times width_1^2} + a*\frac{1}{(t-mean_2)^2+0.25 \times width_2^2}
+ * There is 5 parameters unknown.
+ *
+ * We suppose the detectors' response function follow Gauss, which sigma is variable.
+ *      \sigma(t) = 10/sqrt(t)
+ *
+ * So the final PDF looks like:
+ *      F(x) = \int_{x_{min}-3\sigma({x_{min}})}^{x_{max}+3\sigma({x_{max}})} f(t) *
+ *          \frac{1}{\sigma (t)} \exp{-\frac{(t-x)^2}{2*\sigma^2(t)}}
+ * this RooMyPdf will return the exactly value for given parameters and x.
+ */
 
 class RooMyPdf : public RooAbsPdf
 {
@@ -24,54 +40,51 @@ public:
     {};
 
     RooMyPdf(const char *name, const char *title,
-             RooAbsReal &_x, RooAbsReal &_mean, RooAbsReal &_width, int _bins = 10000, int _method = 0,
-             DebugTimeInfo *debug = nullptr);
+             RooAbsReal &_x,
+             RooAbsReal &_mean_1,
+             RooAbsReal &_mean_2,
+             RooAbsReal &_width_1,
+             RooAbsReal &_width_2,
+             RooAbsReal &_ratio,
+             bool _use_gpu,
+             int _bins = 10000);
 
     RooMyPdf(const RooMyPdf &other, const char *name = 0);
 
     virtual TObject *clone(const char *newname) const
     { return new RooMyPdf(*this, newname); }
 
-    inline virtual ~RooMyPdf()
-    {
-        if (temp != nullptr) {
-            delete temp;
-        }
-    }
-
-    void cuda_gaus_prepare();
-
 protected:
 
     RooRealProxy x;
-    RooRealProxy width;
-    RooRealProxy mean;
-    int method;
+    RooRealProxy width_1;
+    RooRealProxy width_2;
+    RooRealProxy mean_1;
+    RooRealProxy mean_2;
+    RooRealProxy ratio;
     int bins;
+    bool use_gpu = false;
 
-    fastgl::QuadPair *temp = nullptr;
-    std::vector<double> gaus_x;
-    std::vector<double> gaus_w;
-
-    Double_t gaus_evaluate() const;
-
+    // Use cpu to calculate the convolution.
     Double_t normal_evaluate() const;
 
+    // Use gpu to calculate the convolution.
     Double_t cuda_normal_evaluate() const;
-
-    Double_t cuda_gaus_evaluate() const;
 
     Double_t evaluate() const;
 
 private:
+    // sub_evaluate using CPU to get the value of
+    // f(t) * \frac{1}{\sigma (t)} \exp{-\frac{(t-x)^2}{2*\sigma^2(t)}}
+    Double_t sub_evaluate(Double_t t) const;
 
-    Double_t sub_evaluate(Double_t x) const;
+    // sub_f using CPU to get the value of
+    // f(t) = \frac{1}{(t-mean_1)^2+0.25 \times width_1^2} + a*\frac{1}{(t-mean_2)^2+0.25 \times width_2^2}
+    Double_t sub_f(Double_t t) const;
 
-    Double_t sub_f(Double_t x) const;
-
-    Double_t sub_sigma(Double_t x) const;
-
-    DebugTimeInfo *debug;
+    // sub_sigma using CPU to get the value of
+    // \sigma(t) = 10/sqrt(t)
+    Double_t sub_sigma(Double_t t) const;
 
 ClassDef(RooMyPdf, 1) // Your description goes here...
 };
